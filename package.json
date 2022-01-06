@@ -1,0 +1,18 @@
+{
+  "name": "com.pluginset.apple",
+  "displayName": "PluginSet Apple",
+  "version": "0.0.1",
+  "unity": "2018.4",
+  "description": "Apple plugin for login, review and payment",
+  "keywords": [
+    "pluginset",
+    "apple"
+  ],
+  "dependencies": {
+    "com.pluginset.core": "0.0.1"
+  },
+  "author": {
+    "name": "LyneXiao",
+    "email": "lixonxs@icloud.com"
+  }
+}
