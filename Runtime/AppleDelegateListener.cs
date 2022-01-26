@@ -1,4 +1,4 @@
-﻿#if UNITY_IOS
+﻿#if UNITY_EDITOR || UNITY_IOS
 using System;
 using System.Collections.Generic;
 using PluginSet.Core;
@@ -15,6 +15,8 @@ namespace PluginSet.Apple
         public delegate void OnAppleIdLoginSuccessDelegate(Result result);
 
         public delegate void OnApplePasswordLoginSuccessDelegate(string user, string password);
+        
+        public delegate void OnAppleLoginCancelDelegate(string error);
 
         public delegate void OnAppleLoginFailDelegate(string error);
 
@@ -22,6 +24,7 @@ namespace PluginSet.Apple
 
         public event OnAppleIdLoginSuccessDelegate OnAppleIdLoginSuccess;
         public event OnApplePasswordLoginSuccessDelegate OnApplePasswordLoginSuccess;
+        public event OnAppleLoginCancelDelegate OnAppleLoginCancel;
         public event OnAppleLoginFailDelegate OnAppleLoginFail;
         public event OnAppleLoginStatusChangeDelegate OnAppleLoginStatusChange;
 
@@ -71,6 +74,11 @@ namespace PluginSet.Apple
             OnPluginAppleLoginFail("Invalid login type");
         }
 
+        public void OnPluginAppleLoginCancel(string error)
+        {
+            OnAppleLoginCancel?.Invoke(error);
+        }
+
         public void OnPluginAppleLoginFail(string error)
         {
             OnAppleLoginFail?.Invoke(error);
@@ -86,6 +94,7 @@ namespace PluginSet.Apple
             OnApplePasswordLoginSuccess = null;
             OnAppleLoginStatusChange = null;
             OnAppleIdLoginSuccess = null;
+            OnAppleLoginCancel = null;
             OnAppleLoginFail = null;
             
 #if ENABLE_APPLE_PURCHASE

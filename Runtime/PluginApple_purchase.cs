@@ -1,4 +1,4 @@
-#if UNITY_IOS && ENABLE_APPLE_PURCHASE
+#if UNITY_EDITOR || (UNITY_IOS && ENABLE_APPLE_PURCHASE)
 using System.Linq;
 using System;
 using System.Collections;
@@ -54,7 +54,7 @@ namespace PluginSet.Apple
                 callback?.Invoke(new Result
                 {
                     Success = false,
-                    Code = -1,
+                    Code = PluginConstants.FailDefaultCode,
                     Error = "Cannot pay again when a payment has not completed",
                     Data = jsonData
                 });
@@ -71,7 +71,7 @@ namespace PluginSet.Apple
             callback?.Invoke(new Result
             {
                 Success = false,
-                Code = -2,
+                Code = PluginConstants.FailDefaultCode,
                 PluginName = Name,
                 Error = "Not support",
                 Data = jsonData
@@ -118,7 +118,7 @@ namespace PluginSet.Apple
                     data.callback?.Invoke(new Result
                     {
                         Success = true,
-                        Code = 0,
+                        Code = PluginConstants.SuccessCode,
                         PluginName = Name,
                         Data = result.json
                     });
@@ -132,7 +132,7 @@ namespace PluginSet.Apple
             SendNotification(PluginConstants.IAP_CALLBACK_LOST_PAYMENTS, new Result
             {
                 Success = true,
-                Code = 0,
+                Code = PluginConstants.SuccessCode,
                 PluginName = Name,
                 Data = result.json
             });
@@ -148,7 +148,7 @@ namespace PluginSet.Apple
                 data.callback?.Invoke(new Result
                 {
                     Success = false,
-                    Code = -1,
+                    Code = PluginConstants.FailDefaultCode,
                     Error = error.message,
                     PluginName = Name,
                     Data = data.extra

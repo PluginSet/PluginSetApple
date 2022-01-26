@@ -1,4 +1,4 @@
-#if UNITY_IOS
+#if !UNITY_EDITOR && UNITY_IOS
 
 using System.Runtime.InteropServices;
 
@@ -6,7 +6,6 @@ namespace PluginSet.Apple
 {
     public static class AppleIosHelper
     {
-#if !UNITY_EDITOR
         [DllImport("__Internal")]
         public static extern bool Plugin_Apple_Init_With_Delegate_Name(string gameObjectName);
         
@@ -29,7 +28,6 @@ namespace PluginSet.Apple
         public static extern void Plugin_Apple_Buy_Prodcut_With_Product_Id(string productId,string extra);
         [DllImport("__Internal")]
         public static extern void Plugin_Apple_Finish_Transaction(string transactionId);
-#endif
 #endif
     }
 }

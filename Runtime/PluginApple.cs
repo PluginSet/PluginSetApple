@@ -1,4 +1,4 @@
-﻿#if UNITY_IOS
+﻿#if UNITY_EDITOR || UNITY_IOS
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,12 +8,14 @@ using Logger = PluginSet.Core.Logger;
 
 namespace PluginSet.Apple
 {
+#if !UNITY_EDITOR
     [PluginRegister]
+#endif
     public partial class PluginApple : PluginBase, IStartPlugin, ILoginPlugin, IStore
     {
         private static readonly Logger Logger = LoggerManager.GetLogger("Apple");
         
-        public const string GameObjectName = "AppleDelegateListener";
+        private const string GameObjectName = "AppleDelegateListener";
         
         public override string Name => "Apple";
 
@@ -30,12 +32,7 @@ namespace PluginSet.Apple
         /// <summary>
         /// 是否登陆成功
         /// </summary>
-        public bool IsLoggedIn {
-            get
-            {
-                return !string.IsNullOrEmpty(_loginData);
-            }
-        }
+        public bool IsLoggedIn => !string.IsNullOrEmpty(_loginData);
 
         private readonly List<Action<Result>> _loginCallbacks = new List<Action<Result>>();
 
@@ -54,6 +51,7 @@ namespace PluginSet.Apple
             listener.OnAppleLoginStatusChange += OnAppleLoginStatusChanged;
             listener.OnAppleIdLoginSuccess += OnAppleIdLoginSuccess;
             listener.OnAppleLoginFail += OnAppleLoginFail;
+            listener.OnAppleLoginCancel += OnAppleLoginCancel;
             
 #if !UNITY_EDITOR
             IsEnableLogin = AppleIosHelper.Plugin_Apple_Init_With_Delegate_Name(GameObjectName);
@@ -61,7 +59,7 @@ namespace PluginSet.Apple
             IsEnableLogin = true;
 #endif
 
-#if ENABLE_APPLE_PURCHASE
+#if UNITY_EDITOR || ENABLE_APPLE_PURCHASE
             yield return StartPayment(listener);
 #endif
         }
@@ -79,7 +77,7 @@ namespace PluginSet.Apple
 #if !UNITY_EDITOR
             AppleIosHelper.Plugin_Apple_Login_With_AppleId();
 #else
-            OnLoginFail("Invalid platform");
+            OnLoginFail(PluginConstants.FailDefaultCode, "Invalid platform");
 #endif
         }
 
@@ -90,22 +88,28 @@ namespace PluginSet.Apple
 
         private void OnAppleIdLoginSuccess(Result result)
         {
-            OnLoginSuccess(ref result);
             _loginData = result.Data;
+            OnLoginSuccess(ref result);
         }
 
         private void OnApplePasswordLoginSuccess(string user, string password)
         {
-            OnLoginFail("Invalid login type");
+            OnLoginFail(PluginConstants.FailDefaultCode, "Invalid login type");
+        }
+
+        private void OnAppleLoginCancel(string error)
+        {
+            OnLoginFail(PluginConstants.CancelCode, error);
         }
 
         private void OnAppleLoginFail(string error)
         {
-            OnLoginFail(error);
+            OnLoginFail(PluginConstants.FailDefaultCode, error);
         }
 
         private void OnAppleLoginStatusChanged(string message)
         {
+            _loginData = null;
             Logger.Debug("OnAppleLoginStatusChanged message: {0}", message);
             SendNotification(PluginConstants.NOTIFY_LOGIN_STATUS_CHANGED, message);
         }
@@ -113,6 +117,8 @@ namespace PluginSet.Apple
         private void OnLoginResult(ref Result result)
         {
             result.PluginName = Name;
+            result.Code = PluginConstants.SuccessCode;
+            
             foreach (var callback in _loginCallbacks)
             {
                 callback.Invoke(result);
@@ -126,19 +132,21 @@ namespace PluginSet.Apple
             OnLoginResult(ref result);
         }
 
-        private void OnLoginFail(string error = "")
+        private void OnLoginFail(int code, string error = "")
         {
             var result = new Result
             {
                 Success = false,
+                PluginName = Name,
+                Code = code,
                 Error = error
             };
             OnLoginResult(ref result);
         }
 
-        public string GetUserInfo()
+        public string GetUserLoginData()
         {
-            return IsLoggedIn ? _loginData : "{}";
+            return _loginData;
         }
         
         public void Review()

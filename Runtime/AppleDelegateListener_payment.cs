@@ -1,4 +1,4 @@
-#if UNITY_IOS && ENABLE_APPLE_PURCHASE
+#if UNITY_EDITOR || (UNITY_IOS && ENABLE_APPLE_PURCHASE)
 using PluginSet.Core;
 using System.Collections.Generic;
 using UnityEngine;
@@ -46,11 +46,13 @@ namespace PluginSet.Apple
         public delegate void OnAppleInitProductsFail(ErrorResult error);
         public delegate void OnAppleBuyProductSuccess(PayResult result);
         public delegate void OnAppleBuyProductFail(ErrorResult error);
+        public delegate void OnAppleBuyProductCancel(ErrorResult error);
 
         public event OnAppleInitProductsSuccess OnInitProductsSuccess;
         public event OnAppleInitProductsFail OnInitProductsFail;
         public event OnAppleBuyProductSuccess OnBuyProductSuccess;
         public event OnAppleBuyProductFail OnBuyProductFail;
+        public event OnAppleBuyProductCancel OnBuyProductCancel;
 
         public void OnPluginAppleInitProductsSuccess(string json)
         {
@@ -71,6 +73,12 @@ namespace PluginSet.Apple
             OnBuyProductSuccess?.Invoke(result);
         }
 
+        public void OnPluginAppleBuyProductCancel(string json)
+        {
+            var error = JsonUtility.FromJson<ErrorResult>(json);
+            OnBuyProductCancel?.Invoke(error);
+        }
+
         public void OnPluginAppleBuyProductFail(string json)
         {
             var error = JsonUtility.FromJson<ErrorResult>(json);
@@ -83,6 +91,7 @@ namespace PluginSet.Apple
             OnInitProductsFail = null;
             OnBuyProductSuccess = null;
             OnBuyProductFail = null;
+            OnBuyProductCancel = null;
         }
     }
 }

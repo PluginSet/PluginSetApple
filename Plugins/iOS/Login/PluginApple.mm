@@ -13,6 +13,7 @@ static const char * appleDelegateGameObjectName = "AppleDelegateListener";
 static NSString* appleDelegateGameObjectNameNs = @"AppleDelegateListener";
 
 static const char * kAppDeleteSuccessCallback = "OnPluginAppleLoginSuccess";
+static const char * kAppDeleteCancelCallback = "OnPluginAppleLoginCancel";
 static const char * kAppDeleteFailCallback = "OnPluginAppleLoginFail";
 static const char * kAppDeleteLoginStatusChange = "OnPluginAppleLoginStatusChange";
 
@@ -140,7 +141,8 @@ PluginApple* instance;
     {
         case ASAuthorizationErrorCanceled:
             errorMsg = @"ASAuthorizationErrorCanceled";
-            break;
+            UnitySendMessage(appleDelegateGameObjectName, kAppDeleteCancelCallback, [errorMsg UTF8String]);
+            return;
         case ASAuthorizationErrorFailed:
             errorMsg = @"ASAuthorizationErrorFailed";
             break;

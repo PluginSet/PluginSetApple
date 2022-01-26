@@ -123,7 +123,7 @@
 
 - (void) initWithProductIds:(NSArray *)productIds {
     if (![SKPaymentQueue canMakePayments]) {
-        [self.delegate handleIAPInitError:ERROR_CODE_PAY_FAIL withMsg:@"您的手机没有打开程序内付费购买"];
+        [self.delegate handleIAPInitError:ERROR_CODE_PAY_FAIL + 0 withMsg:@"您的手机没有打开程序内付费购买"];
         return;
     }
     
@@ -189,23 +189,23 @@
     }
     
     if (self.products == nil) {
-        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL withMsg:@"初始化未完成"];
+        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL + 1 withMsg:@"初始化未完成"];
         return;
     }
     
     if (self.purchasingProductId) {
-        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL withMsg:@"正在支付中，请稍后重试"];
+        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL + 2 withMsg:@"正在支付中，请稍后重试"];
         return;
     }
     
     if (self.unFinishedProducts && [[self.unFinishedProducts allValues] containsObject:productId]) {
-        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL withMsg:@"还有未处理的订单信息"];
+        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL + 3 withMsg:@"还有未处理的订单信息"];
         return;
     }
     
     SKProduct * findProduct = [self findProduct:productId];
     if (findProduct == nil) {
-        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL withMsg:@"未找到相应的商品"];
+        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL + 4 withMsg:@"未找到相应的商品"];
         return;
     }
     
@@ -235,11 +235,11 @@
     }
     if (!self.unFinishedTransacions || ![self.unFinishedTransacions hasKey:transactionId]) return;
     SKPaymentTransaction * transaction = [self.unFinishedTransacions valueForKey:transactionId];
-    [self finishTransactionInternal:transaction];
+    [self finishTransactionInternal:transaction success:true];
     [self.unFinishedTransacions removeObjectForKey:transactionId];
 }
 
-- (void) finishTransactionInternal:(SKPaymentTransaction *)transaction
+- (void) finishTransactionInternal:(SKPaymentTransaction *)transaction success:(bool)success
 {
     NSString * productId = transaction.payment.productIdentifier;
     if (self.customExtras) {
@@ -253,10 +253,16 @@
         SKProduct * product = [self findProduct:productId];
         int price = product ? product.price.intValue : 0;
         NSString * currency = product ? product.priceLocale.currencyCode : @"unknow";
-        [self.delegate invokePayResult:transaction.transactionIdentifier
+        NSString * trasactionId = transaction.transactionIdentifier;
+        if (!trasactionId) {
+            int nowSecond =(int)[[NSDate date] timeIntervalSince1970];
+            trasactionId = [NSString stringWithFormat:@"unknow_%@_%d", productId, nowSecond];
+        }
+        
+        [self.delegate invokePayResult:trasactionId
                               currency:currency
                                  price:price
-                               success:true];
+                               success:success];
     }
         
     [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
@@ -275,20 +281,20 @@
     
     NSURL * appStoreReceiptUrl = [[NSBundle mainBundle]appStoreReceiptURL];
     if (!appStoreReceiptUrl) {
-        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL withMsg:@"Empty appStore receipt url"];
+        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL + 5 withMsg:@"Empty appStore receipt url"];
         [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
         return;
     }
     
     if (![[NSFileManager defaultManager] fileExistsAtPath:appStoreReceiptUrl.path]) {
-        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL withMsg:@"Receipt file not found"];
+        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL + 6 withMsg:@"Receipt file not found"];
         [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
         return;
     }
     
     __auto_type receiptData = [[NSFileManager defaultManager] contentsAtPath:appStoreReceiptUrl.path];
     if (!receiptData) {
-        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL withMsg:@"Receipt data is nil"];
+        [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL + 7 withMsg:@"Receipt data is nil"];
         [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
         return;
     }
@@ -395,8 +401,9 @@
                 [self checkCleanPurchasingProduct:transaction];
                 break;
             case SKPaymentTransactionStateFailed:
+                [self finishTransactionInternal:transaction success:false];
                 [self checkCleanPurchasingProduct:transaction];
-                [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL withMsg:transaction.error.localizedDescription];
+                [self.delegate handleIAPPayError:ERROR_CODE_PAY_FAIL + 8 withMsg:transaction.error.localizedDescription];
                 NSLog(@"购买失败 error: %@", transaction.error.localizedDescription);
                 break;
             case SKPaymentTransactionStateRestored:
