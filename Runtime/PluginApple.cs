@@ -19,7 +19,7 @@ namespace PluginSet.Apple
         
         public override string Name => "Apple";
 
-        public int StartOrder => -100000;
+        public int StartOrder => PluginsStartOrder.SdkDefault;
         
         public bool IsRunning { get; private set; }
         public bool IsEnableLogin { get; private set; }
