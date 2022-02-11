@@ -68,7 +68,17 @@ namespace PluginSet.Apple
         {
         }
 
-
+        /// <summary>
+        /// </summary>
+        /// <param name="callback">
+        /// 回调玩家数据：
+        /// type string AppleId
+        /// userId string
+        /// userName string
+        /// idToken string
+        /// authToken string
+        /// status number
+        /// </param>
         public void Login(Action<Result> callback = null)
         {
             if (callback != null)
