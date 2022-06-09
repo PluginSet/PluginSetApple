@@ -20,6 +20,8 @@
 
 #define ERROR_CODE_PAY_FAIL (1000)
 
+#define IF_NIL_EMPTY(s) (s ? s : @"")
+
 @interface IAPManager()
 @property(nonatomic, strong) id<IAPDelegateProtocol> delegate;
 @property(nonatomic, strong) NSString * applicationUserName;
@@ -358,14 +360,19 @@
     for (SKProduct * product in response.products) {
         [numberFormatter setLocale:product.priceLocale];
         NSString * formtterPrice = [numberFormatter stringForObjectValue:product.price];
+        NSString * productId = product.productIdentifier;
+        NSDecimalNumber *price = product.price;
+        NSString * currency = product.priceLocale.currencyCode;
+        NSString * title = IF_NIL_EMPTY(product.localizedTitle);
+        NSString * desc = IF_NIL_EMPTY(product.localizedDescription);
         [priceDict setObject:@{
-            @"productId": product.productIdentifier,
-            @"price": product.price,
-            @"currency": product.priceLocale.currencyCode,
+            @"productId": productId,
+            @"price": price,
+            @"currency": currency,
             @"priceString": formtterPrice,
-            @"title": product.localizedTitle,
-            @"description": product.localizedDescription
-        } forKey:product.productIdentifier];
+            @"title": title,
+            @"description":desc
+        } forKey:productId];
         
         NSLog(@"item::%@(%@)[id=%@] price:%@", product.localizedTitle, product.localizedDescription, product.productIdentifier, formtterPrice);
     }
