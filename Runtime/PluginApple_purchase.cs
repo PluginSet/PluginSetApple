@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using PluginSet.Core;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace PluginSet.Apple
 {
@@ -25,6 +26,8 @@ namespace PluginSet.Apple
         }
 
         private RequestingData? _requesting;
+
+        private event Action<string> onTransactionCompleted = null;
         
         public bool IsEnablePayment { get; private set; }
         
@@ -93,6 +96,17 @@ namespace PluginSet.Apple
 #if UNITY_IOS && !UNITY_EDITOR
             AppleIosHelper.Plugin_Apple_Finish_Transaction(transactionId);
 #endif
+            onTransactionCompleted?.Invoke(transactionId);
+        }
+
+        public void AddOnPaymentCompleted(Action<string> completed)
+        {
+            onTransactionCompleted += completed;
+        }
+
+        public void RemoveOnPaymentCompleted(Action<string> completed)
+        {
+            onTransactionCompleted -= completed;
         }
 
         private void OnAppleInitProductsSuccess(Dictionary<string, AppleDelegateListener.AppleProduct> priceDict)
