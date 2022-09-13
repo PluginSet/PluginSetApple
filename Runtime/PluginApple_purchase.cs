@@ -109,15 +109,28 @@ namespace PluginSet.Apple
             onTransactionCompleted -= completed;
         }
 
-        private void OnAppleInitProductsSuccess(Dictionary<string, AppleDelegateListener.AppleProduct> priceDict)
+        private void OnAppleInitProductsSuccess(string json, Dictionary<string, AppleDelegateListener.AppleProduct> priceDict)
         {
-            SendNotification(PluginConstants.IAP_ON_INIT_SUCCESS, priceDict.Values.ToList());
+            SendNotification(PluginConstants.IAP_ON_INIT_SUCCESS, new Result
+            {
+                PluginName = Name,
+                Success = true,
+                Code = PluginConstants.SuccessCode,
+                Data = json,
+                DataObject = priceDict,
+            });
         }
 
         private void OnAppleInitProductsFail(AppleDelegateListener.ErrorResult error)
         {
             Logger.Debug("OnAppleInitProductsFail", error.message);
-            SendNotification(PluginConstants.IAP_ON_INIT_FAILED, error.message);
+            SendNotification(PluginConstants.IAP_ON_INIT_FAILED, new Result
+            {
+                PluginName = Name,
+                Success = false,
+                Code = int.Parse(error.errorCode),
+                Error = error.message,
+            });
         }
 
         private void OnAppleBuyProductSuccess(AppleDelegateListener.PayResult result)

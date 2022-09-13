@@ -42,7 +42,7 @@ namespace PluginSet.Apple
             public override string Description => description;
         }
         
-        public delegate void OnAppleInitProductsSuccess(Dictionary<string, AppleProduct> priceDict);
+        public delegate void OnAppleInitProductsSuccess(string json, Dictionary<string, AppleProduct> priceDict);
         public delegate void OnAppleInitProductsFail(ErrorResult error);
         public delegate void OnAppleBuyProductSuccess(PayResult result);
         public delegate void OnAppleBuyProductFail(ErrorResult error);
@@ -57,7 +57,7 @@ namespace PluginSet.Apple
         public void OnPluginAppleInitProductsSuccess(string json)
         {
             Dictionary<string, AppleProduct> dict = JsonUtility.FromJson<Dictionary<string, AppleProduct>>(json);
-            OnInitProductsSuccess?.Invoke(dict);
+            OnInitProductsSuccess?.Invoke(json, dict);
         }
 
         public void OnPluginAppleInitProductsFail(string json)
