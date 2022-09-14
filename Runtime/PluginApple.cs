@@ -131,7 +131,14 @@ namespace PluginSet.Apple
             
             foreach (var callback in _loginCallbacks)
             {
-                callback.Invoke(result);
+                try
+                {
+                    callback.Invoke(result);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error($"Call login result error:{e.Message}:{e}");
+                }
             }
             _loginCallbacks.Clear();
         }

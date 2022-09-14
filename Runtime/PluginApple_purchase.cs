@@ -50,8 +50,6 @@ namespace PluginSet.Apple
 
         public void Pay(string productId, Action<Result> callback = null, string jsonData = null)
         {
-            Debug.Log("paywith type 33333333333333333333333333333" + Name + productId);
-            Logger.Debug(Name + " call pay::::  " + productId);
             if (_requesting.HasValue)
             {
                 callback?.Invoke(new Result
@@ -65,10 +63,8 @@ namespace PluginSet.Apple
                 return;
             }
             
-            Logger.Debug(Name + " call pay:::: 1111111111111111111111111111111 " + productId);
             _requesting = new RequestingData(productId, jsonData, callback);
 #if UNITY_IOS && !UNITY_EDITOR
-            Logger.Debug(Name + " call pay:::: 2222222222222222222222222222222 " + productId);
             AppleIosHelper.Plugin_Apple_Buy_Prodcut_With_Product_Id(productId, jsonData);
 #else
             callback?.Invoke(new Result
@@ -135,27 +131,34 @@ namespace PluginSet.Apple
 
         private void OnAppleBuyProductSuccess(AppleDelegateListener.PayResult result)
         {
-            Debug.Log("OnAppleBuyProductSuccess >>>>>>>>>>>>>>>>>>>> result =" + result.extra);
             if (_requesting.HasValue)
             {
                 var data = _requesting.Value;
                 if (data.productId == result.productId && (string.IsNullOrEmpty(result.extra) || data.extra == result.extra))
                 {
-                    Debug.Log("OnAppleBuyProductSuccess 00000000000000000000 callback ");
-                    data.callback?.Invoke(new Result
+                    if (data.callback != null)
                     {
-                        Success = true,
-                        Code = PluginConstants.SuccessCode,
-                        PluginName = Name,
-                        Data = result.json
-                    });
+                        try
+                        {
+                            data.callback.Invoke(new Result
+                            {
+                                Success = true,
+                                Code = PluginConstants.SuccessCode,
+                                PluginName = Name,
+                                Data = result.json
+                            });
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Error($"Buy product success call error: {e.Message}: {e}");
+                        }
+                    }
 
                     _requesting = null;
                     return;
                 }
             }
             
-            Debug.Log("OnAppleBuyProductSuccess 11111111111111111111 callback ");
             SendNotification(PluginConstants.IAP_CALLBACK_LOST_PAYMENTS, new Result
             {
                 Success = true,
@@ -172,14 +175,24 @@ namespace PluginSet.Apple
             if (_requesting.HasValue)
             {
                 var data = _requesting.Value;
-                data.callback?.Invoke(new Result
+                if (data.callback != null)
                 {
-                    Success = false,
-                    Code = PluginConstants.FailDefaultCode,
-                    Error = error.message,
-                    PluginName = Name,
-                    Data = data.extra
-                });
+                    try
+                    {
+                        data.callback?.Invoke(new Result
+                        {
+                            Success = false,
+                            Code = PluginConstants.FailDefaultCode,
+                            Error = error.message,
+                            PluginName = Name,
+                            Data = data.extra
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error($"Buy product fail call error: {e.Message}: {e}");
+                    }
+                }
                 _requesting = null;
             }
         }
