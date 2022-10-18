@@ -56,6 +56,7 @@ namespace PluginSet.Apple
 
         public void OnPluginAppleInitProductsSuccess(string json)
         {
+            Logger.Debug($"OnPluginAppleInitProductsSuccess >>>>>>>>>>>>> {json} callback:{OnInitProductsSuccess}");
             Dictionary<string, AppleProduct> dict = JsonUtility.FromJson<Dictionary<string, AppleProduct>>(json);
             OnInitProductsSuccess?.Invoke(json, dict);
         }

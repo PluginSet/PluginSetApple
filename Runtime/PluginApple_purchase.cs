@@ -107,6 +107,7 @@ namespace PluginSet.Apple
 
         private void OnAppleInitProductsSuccess(string json, Dictionary<string, AppleDelegateListener.AppleProduct> priceDict)
         {
+            Logger.Debug($"OnAppleInitProductsSuccess >>>>>>>>>>>>> {json}");
             SendNotification(PluginConstants.IAP_ON_INIT_SUCCESS, new Result
             {
                 PluginName = Name,
