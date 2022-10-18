@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using PluginSet.Core.Editor;
 using UnityEditor;
 using UnityEditor.iOS.Xcode;
+using UnityEditor.iOS.Xcode.Extensions;
 using UnityEngine;
 
 namespace PluginSet.Apple.Editor
@@ -10,6 +11,8 @@ namespace PluginSet.Apple.Editor
     [BuildTools]
     public static class BuildAppleTools
     {
+        const string k_StorekitFramework = "StoreKit.framework";
+        
         [OnSyncEditorSetting]
         public static void OnSyncEditorSetting(BuildProcessorContext context)
         {
@@ -35,6 +38,8 @@ namespace PluginSet.Apple.Editor
 
             if (buildParams.EnablePurchase)
             {
+                project.Project.AddFrameworkToProject(project.MainFramework, k_StorekitFramework, false);
+                project.Project.AddFrameworkToProject(project.UnityFramework, k_StorekitFramework, false);
                 project.AddInAppPurchase();
             }
         }
