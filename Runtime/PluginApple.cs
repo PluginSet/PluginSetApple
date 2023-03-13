@@ -79,7 +79,7 @@ namespace PluginSet.Apple
         /// authToken string
         /// status number
         /// </param>
-        public void Login(Action<Result> callback = null)
+        public void Login(Action<Result> callback = null, string _ = null)
         {
             if (callback != null)
                 _loginCallbacks.Add(callback);
@@ -91,7 +91,7 @@ namespace PluginSet.Apple
 #endif
         }
 
-        public void Logout(Action<Result> callback = null)
+        public void Logout(Action<Result> callback = null, string _ = null)
         {
             _loginData = string.Empty;
         }
