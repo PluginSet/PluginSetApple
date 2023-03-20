@@ -17,7 +17,7 @@ namespace PluginSet.Apple.Editor
             if (context.BuildTarget != BuildTarget.iOS)
                 return;
             
-            var buildParams = context.BuildChannels.Get<BuildAppleParams>("Apple");
+            var buildParams = context.BuildChannels.Get<BuildAppleParams>();
             context.Symbols.Add("ENABLE_APPLE");
             context.AddLinkAssembly("PluginSet.Apple");
             
@@ -31,7 +31,7 @@ namespace PluginSet.Apple.Editor
             if (context.BuildTarget != BuildTarget.iOS)
                 return;
             
-            var buildParams = context.BuildChannels.Get<BuildAppleParams>("Apple");
+            var buildParams = context.BuildChannels.Get<BuildAppleParams>();
             project.AddSignInWithApple();
 
             if (buildParams.EnablePurchase)

@@ -21,7 +21,7 @@ namespace PluginSet.Apple.Editor
         private static bool FilterPayPlugins(string s, BuildProcessorContext context)
         {
             var enable = context.BuildTarget == BuildTarget.iOS;
-            var buildParams = context.BuildChannels.Get<BuildAppleParams>("Apple");
+            var buildParams = context.BuildChannels.Get<BuildAppleParams>();
             if (!enable || !buildParams.EnablePurchase)
             {
                 Debug.Log("Filter lib file :::::::  " + s);
