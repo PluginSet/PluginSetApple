@@ -105,6 +105,13 @@ namespace PluginSet.Apple
             onTransactionCompleted -= completed;
         }
 
+
+        public void RestorePayments(Action<Result> callback = null, string json = null)
+        {
+            // TODO
+            throw new NotImplementedException();
+        }
+
         private void OnAppleInitProductsSuccess(string json, Dictionary<string, AppleDelegateListener.AppleProduct> priceDict)
         {
             Logger.Debug($"OnAppleInitProductsSuccess >>>>>>>>>>>>> {json}");

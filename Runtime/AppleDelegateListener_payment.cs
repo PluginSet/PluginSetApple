@@ -26,20 +26,24 @@ namespace PluginSet.Apple
         {
             
             public string productId { set; protected get; }
-            public float price { set; protected get; }
+            public int price { set; protected get; }
             public string currency { set; protected get; }
             public string priceString { set; protected get; }
             public string title { set; protected get; }
             public string description { set; protected get; }
+            public ProductType type { set; protected get; }
             
 
             public override bool AvailableToPurchase => true;
             public override string ProductId => productId;
-            public override float Price => price;
+            public override int Price => price;
             public override string Currency => currency;
             public override string PriceString => priceString;
             public override string Title => title;
+            public override ProductType Type => type;
             public override string Description => description;
+            public override string Payload { get; }
+            public override string Receipt { get; }
         }
         
         public delegate void OnAppleInitProductsSuccess(string json, Dictionary<string, AppleProduct> priceDict);
