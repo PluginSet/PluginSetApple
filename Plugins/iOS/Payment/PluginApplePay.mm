@@ -26,6 +26,7 @@ static const char * kAppleDelegateInitPrudctsSuccess = "OnPluginAppleInitProduct
 static const char * kAppleDelegateInitPrudctsFail = "OnPluginAppleInitProductsFail";
 static const char * kAppleDelegateBuyPrudctSuccess = "OnPluginAppleBuyProductSuccess";
 static const char * kAppleDelegateBuyPrudctFail = "OnPluginAppleBuyProductFail";
+static const char * kAppleDelegateRestoreTransactionFail = "OnPluginAppleRestoreTransactionFail";
 
 static PluginApplePay* instance;
 
@@ -88,6 +89,14 @@ static PluginApplePay* instance;
     UnitySendMessage(appleDelegateGameObjectName, kAppleDelegateBuyPrudctSuccess, [[PluginUtils dictToJson:result] UTF8String]);
 }
 
+- (void)handleIAPRestoreTransactionFail:(int)errorCode withMsg:(NSString *)message { 
+    NSDictionary * result = @{
+        @"errorCode": @(errorCode),
+        @"message": message
+    };
+    UnitySendMessage(appleDelegateGameObjectName, kAppleDelegateRestoreTransactionFail, [[PluginUtils dictToJson:result] UTF8String]);
+}
+
 @end
 
 #if defined(__cplusplus)
@@ -126,6 +135,11 @@ extern "C"
     {
         NSString * transactionIdNS = [NSString stringWithUTF8String:transactionId];
         [[PluginApplePay getInstance] finishTransaction:transactionIdNS];
+    }
+
+    void Plugin_Apple_Restore_Transactions()
+    {
+        [[PluginApplePay getInstance] restoreCompletedTransactions];
     }
 #if defined(__cplusplus)
 }

@@ -7,7 +7,7 @@ namespace PluginSet.Apple
     public static class AppleIosHelper
     {
         [DllImport("__Internal")]
-        public static extern bool Plugin_Apple_Init_With_Delegate_Name(string gameObjectName);
+        public static extern bool Plugin_Apple_IsEnableLogin();
         
         [DllImport("__Internal")]
         public static extern void Plugin_Apple_Login_With_AppleId();
@@ -28,6 +28,8 @@ namespace PluginSet.Apple
         public static extern void Plugin_Apple_Buy_Prodcut_With_Product_Id(string productId,string extra);
         [DllImport("__Internal")]
         public static extern void Plugin_Apple_Finish_Transaction(string transactionId);
+        [DllImport("__Internal")]
+        public static extern void Plugin_Apple_Restore_Transactions();
 #endif
     }
 }

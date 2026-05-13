@@ -22,6 +22,11 @@ namespace PluginSet.Apple
             public string json;
         }
 
+        public struct RestoreTransactionResult
+        {
+            public PayResult[] purchasedProducts;
+        }
+
         public class AppleProduct : IPaymentProduct
         {
             
@@ -42,27 +47,32 @@ namespace PluginSet.Apple
             public override string Title => title;
             public override ProductType Type => type;
             public override string Description => description;
-            public override string Payload { get; }
-            public override string Receipt { get; }
         }
         
-        public delegate void OnAppleInitProductsSuccess(string json, Dictionary<string, AppleProduct> priceDict);
+        public delegate void OnAppleInitProductsSuccess(string json, Dictionary<string, IPaymentProduct> priceDict);
         public delegate void OnAppleInitProductsFail(ErrorResult error);
         public delegate void OnAppleBuyProductSuccess(PayResult result);
         public delegate void OnAppleBuyProductFail(ErrorResult error);
         public delegate void OnAppleBuyProductCancel(ErrorResult error);
+        public delegate void OnAppleRestoreTransactionFail(ErrorResult error);
 
         public event OnAppleInitProductsSuccess OnInitProductsSuccess;
         public event OnAppleInitProductsFail OnInitProductsFail;
         public event OnAppleBuyProductSuccess OnBuyProductSuccess;
         public event OnAppleBuyProductFail OnBuyProductFail;
         public event OnAppleBuyProductCancel OnBuyProductCancel;
+        public event OnAppleRestoreTransactionFail OnRestoreTransactionFail;
 
         public void OnPluginAppleInitProductsSuccess(string json)
         {
             Logger.Debug($"OnPluginAppleInitProductsSuccess >>>>>>>>>>>>> {json} callback:{OnInitProductsSuccess}");
             Dictionary<string, AppleProduct> dict = JsonUtility.FromJson<Dictionary<string, AppleProduct>>(json);
-            OnInitProductsSuccess?.Invoke(json, dict);
+            Dictionary<string, IPaymentProduct> callback = new Dictionary<string, IPaymentProduct>();
+            foreach (var kv in dict)
+            {
+                callback.Add(kv.Key, (IPaymentProduct)kv.Value);
+            }
+            OnInitProductsSuccess?.Invoke(json, callback);
         }
 
         public void OnPluginAppleInitProductsFail(string json)
@@ -88,6 +98,12 @@ namespace PluginSet.Apple
         {
             var error = JsonUtility.FromJson<ErrorResult>(json);
             OnBuyProductFail?.Invoke(error);
+        }
+
+        public void OnPluginAppleRestoreTransactionFail(string json)
+        {
+            var error = JsonUtility.FromJson<ErrorResult>(json);
+            OnRestoreTransactionFail?.Invoke(error);
         }
 
         private void OnDestroyPayment()

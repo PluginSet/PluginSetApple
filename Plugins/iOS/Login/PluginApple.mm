@@ -10,7 +10,6 @@
 @end
 
 static const char * appleDelegateGameObjectName = "AppleDelegateListener";
-static NSString* appleDelegateGameObjectNameNs = @"AppleDelegateListener";
 
 static const char * kAppDeleteSuccessCallback = "OnPluginAppleLoginSuccess";
 static const char * kAppDeleteCancelCallback = "OnPluginAppleLoginCancel";
@@ -256,14 +255,8 @@ PluginApple* instance;
 extern "C"
 {
 #endif
-    bool Plugin_Apple_Init_With_Delegate_Name(const char * gameObjectName)
+    bool Plugin_Apple_IsEnableLogin()
     {
-        if (gameObjectName)
-        {
-            appleDelegateGameObjectNameNs = [NSString stringWithUTF8String:(gameObjectName)];
-            appleDelegateGameObjectName = [appleDelegateGameObjectNameNs UTF8String];
-        }
-        
         if (@available(iOS 13.0, *))
             return true;
         else

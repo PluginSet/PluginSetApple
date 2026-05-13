@@ -18,8 +18,13 @@ namespace PluginSet.Apple.Editor
                 return;
             
             var buildParams = context.BuildChannels.Get<BuildAppleParams>();
-            context.Symbols.Add("ENABLE_APPLE");
+            if (!buildParams.Enable)
+                return;
+            
             context.AddLinkAssembly("PluginSet.Apple");
+            context.Symbols.Add("ENABLE_APPLE");
+            if (buildParams.EnableLogin)
+                context.Symbols.Add("ENABLE_APPLE_LOGIN");
             
             if (buildParams.EnablePurchase)
                 context.Symbols.Add("ENABLE_APPLE_PURCHASE");

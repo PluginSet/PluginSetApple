@@ -15,9 +15,9 @@ namespace PluginSet.Apple
         {
             public string productId;
             public string extra;
-            public Action<Result> callback;
+            public Action<PurchaseResult> callback;
 
-            public RequestingData(string productId, string extra, Action<Result> callback)
+            public RequestingData(string productId, string extra, Action<PurchaseResult> callback)
             {
                 this.productId = productId;
                 this.extra = extra;
@@ -27,16 +27,18 @@ namespace PluginSet.Apple
 
         private RequestingData? _requesting;
 
-        private event Action<string> onTransactionCompleted = null;
+        private Action<IAPInitResult> _initProductsCallback;
+        private Action<Result> _restoreProductsCallback;
         
         public bool IsEnablePayment { get; private set; }
         
-        public IEnumerator StartPayment(AppleDelegateListener listener)
+        private IEnumerator StartPayment(AppleDelegateListener listener)
         {
             listener.OnInitProductsSuccess += OnAppleInitProductsSuccess;
             listener.OnInitProductsFail += OnAppleInitProductsFail;
             listener.OnBuyProductSuccess += OnAppleBuyProductSuccess;
             listener.OnBuyProductFail += OnAppleBuyProductFail;
+            listener.OnRestoreTransactionFail += OnRestoreTransactionFail;
 
 #if UNITY_IOS && !UNITY_EDITOR
             IsEnablePayment = AppleIosHelper.Plugin_Apple_Pay_Enable();
@@ -48,11 +50,11 @@ namespace PluginSet.Apple
             yield break;
         }
 
-        public void Pay(string productId, Action<Result> callback = null, string jsonData = null)
+        public void Pay(string productId, Action<PurchaseResult> callback = null, string jsonData = null)
         {
             if (_requesting.HasValue)
             {
-                callback?.Invoke(new Result
+                callback?.Invoke(new PurchaseResult
                 {
                     Success = false,
                     Code = PluginConstants.FailDefaultCode,
@@ -67,7 +69,7 @@ namespace PluginSet.Apple
 #if UNITY_IOS && !UNITY_EDITOR
             AppleIosHelper.Plugin_Apple_Buy_Prodcut_With_Product_Id(productId, jsonData);
 #else
-            callback?.Invoke(new Result
+            callback?.Invoke(new PurchaseResult()
             {
                 Success = false,
                 Code = PluginConstants.FailDefaultCode,
@@ -80,42 +82,74 @@ namespace PluginSet.Apple
             
         }
 
-        public void InitWithProducts(Dictionary<string, int> products)
+        public void InitWithProducts(Dictionary<string, ProductType> products, Action<IAPInitResult> callback = null)
         {
+            if (callback != null)
+                _initProductsCallback += callback;
 #if UNITY_IOS && !UNITY_EDITOR
             AppleIosHelper.Plugin_Apple_Pay_Init_With_Products(string.Join("#", products.Keys));
+#else
+            var fakeProducts = new Dictionary<string, IPaymentProduct>();
+            foreach (var kv in products)
+            {
+                fakeProducts.Add(kv.Key, new AppleDelegateListener.AppleProduct()
+                {
+                    productId = kv.Key,
+                    currency = "USD",
+                    priceString = "$0.01",
+                    title = "Fake item",
+                    description = "Fake item",
+                    type = kv.Value
+                });
+            }
+            _initProductsCallback?.Invoke(new IAPInitResult()
+            {
+                Success = true,
+                Code = PluginConstants.SuccessCode,
+                PluginName = Name,
+                Data = JsonUtil.ToJson(fakeProducts),
+                DataObject = fakeProducts
+            });
+            _initProductsCallback = null;
 #endif
         }
 
-        public void PaymentComplete(string transactionId)
+        public void PaymentComplete(string transactionId, Action<Result> callback = null)
         {
 #if UNITY_IOS && !UNITY_EDITOR
             AppleIosHelper.Plugin_Apple_Finish_Transaction(transactionId);
 #endif
-            onTransactionCompleted?.Invoke(transactionId);
-        }
-
-        public void AddOnPaymentCompleted(Action<string> completed)
-        {
-            onTransactionCompleted += completed;
-        }
-
-        public void RemoveOnPaymentCompleted(Action<string> completed)
-        {
-            onTransactionCompleted -= completed;
+            callback?.Invoke(new Result()
+            {
+                Success = true,
+                Code = PluginConstants.SuccessCode,
+                Data = transactionId,
+                PluginName = Name,
+            });
         }
 
 
         public void RestorePayments(Action<Result> callback = null, string json = null)
         {
-            // TODO
-            throw new NotImplementedException();
+            if (callback != null)
+                _restoreProductsCallback += callback;
+#if UNITY_IOS && !UNITY_EDITOR
+            AppleIosHelper.Plugin_Apple_Restore_Transactions();
+#else
+            _restoreProductsCallback?.Invoke(new Result()
+            {
+                Success = false,
+                Code = PluginConstants.InvalidCode,
+                Error = "Invalid platform"
+            });
+            _restoreProductsCallback = null;
+#endif
         }
 
-        private void OnAppleInitProductsSuccess(string json, Dictionary<string, AppleDelegateListener.AppleProduct> priceDict)
+        private void OnAppleInitProductsSuccess(string json, Dictionary<string, IPaymentProduct> priceDict)
         {
             Logger.Debug($"OnAppleInitProductsSuccess >>>>>>>>>>>>> {json}");
-            SendNotification(PluginConstants.IAP_ON_INIT_SUCCESS, new Result
+            _initProductsCallback?.Invoke( new IAPInitResult()
             {
                 PluginName = Name,
                 Success = true,
@@ -123,18 +157,20 @@ namespace PluginSet.Apple
                 Data = json,
                 DataObject = priceDict,
             });
+            _initProductsCallback = null;
         }
 
         private void OnAppleInitProductsFail(AppleDelegateListener.ErrorResult error)
         {
             Logger.Debug("OnAppleInitProductsFail", error.message);
-            SendNotification(PluginConstants.IAP_ON_INIT_FAILED, new Result
+            _initProductsCallback?.Invoke( new IAPInitResult()
             {
                 PluginName = Name,
                 Success = false,
                 Code = int.Parse(error.errorCode),
                 Error = error.message,
             });
+            _initProductsCallback = null;
         }
 
         private void OnAppleBuyProductSuccess(AppleDelegateListener.PayResult result)
@@ -148,12 +184,18 @@ namespace PluginSet.Apple
                     {
                         try
                         {
-                            data.callback.Invoke(new Result
+                            data.callback.Invoke(new PurchaseResult()
                             {
                                 Success = true,
                                 Code = PluginConstants.SuccessCode,
                                 PluginName = Name,
-                                Data = result.json
+                                Data = result.json,
+                                DataObject = new PurchaseCallback()
+                                {
+                                    transactionId = result.transactionId,
+                                    productId = result.productId,
+                                    callback = result.receipt,
+                                }
                             });
                         }
                         catch (Exception e)
@@ -167,12 +209,26 @@ namespace PluginSet.Apple
                 }
             }
             
-            SendNotification(PluginConstants.IAP_CALLBACK_LOST_PAYMENTS, new Result
+            _restoreProductsCallback?.Invoke(new Result()
             {
                 Success = true,
                 Code = PluginConstants.SuccessCode,
                 PluginName = Name,
-                Data = result.json
+            });
+            _restoreProductsCallback = null;
+            
+            SendNotification(PluginConstants.IAP_CALLBACK_LOST_PAYMENTS, new PurchaseResult()
+            {
+                Success = true,
+                Code = PluginConstants.SuccessCode,
+                PluginName = Name,
+                Data = result.json,
+                DataObject = new PurchaseCallback()
+                {
+                    transactionId = result.transactionId,
+                    productId = result.productId,
+                    callback = result.receipt,
+                }
             });
         }
 
@@ -187,7 +243,7 @@ namespace PluginSet.Apple
                 {
                     try
                     {
-                        data.callback?.Invoke(new Result
+                        data.callback?.Invoke(new PurchaseResult()
                         {
                             Success = false,
                             Code = PluginConstants.FailDefaultCode,
@@ -203,6 +259,18 @@ namespace PluginSet.Apple
                 }
                 _requesting = null;
             }
+        }
+
+        private void OnRestoreTransactionFail(AppleDelegateListener.ErrorResult error)
+        {
+            _restoreProductsCallback?.Invoke(new Result()
+            {
+                Success = false,
+                Code = PluginConstants.FailDefaultCode,
+                Error = error.message,
+                PluginName = Name,
+            });
+            _restoreProductsCallback = null;
         }
     }
 }

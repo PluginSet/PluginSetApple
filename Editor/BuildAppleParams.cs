@@ -10,6 +10,12 @@ namespace PluginSet.Apple.Editor
     [VisibleCaseBoolValue("SupportIOS", true)]
     public class BuildAppleParams : ScriptableObject
     {
+        [Tooltip("是否启用苹果插件")]
+        public bool Enable;
+
+        [Tooltip("是否启用苹果登录")]
+        public bool EnableLogin;
+        
         [Tooltip("是否启用苹果支付")]
         public bool EnablePurchase;
     }

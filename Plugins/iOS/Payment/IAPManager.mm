@@ -359,7 +359,7 @@
     
     for (SKProduct * product in response.products) {
         [numberFormatter setLocale:product.priceLocale];
-        NSString * formtterPrice = [numberFormatter stringForObjectValue:product.price];
+        NSString * formattedPrice = [numberFormatter stringForObjectValue:product.price];
         NSString * productId = product.productIdentifier;
         NSDecimalNumber *price = product.price;
         NSString * currency = product.priceLocale.currencyCode;
@@ -369,12 +369,12 @@
             @"productId": productId,
             @"price": price,
             @"currency": currency,
-            @"priceString": formtterPrice,
+            @"priceString": formattedPrice,
             @"title": title,
             @"description":desc
         } forKey:productId];
         
-        NSLog(@"item::%@(%@)[id=%@] price:%@", product.localizedTitle, product.localizedDescription, product.productIdentifier, formtterPrice);
+        NSLog(@"item::%@(%@)[id=%@] price:%@", product.localizedTitle, product.localizedDescription, product.productIdentifier, formattedPrice);
     }
     
     // 保存到本地
@@ -430,6 +430,7 @@
 
 - (void)paymentQueue:(SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError:(NSError *)error {
     NSLog(@"restore error:::: %@", error);
+    [self.delegate handleIAPRestoreTransactionFail:ERROR_CODE_PAY_FAIL withMsg:error.localizedDescription];
 }
 
 @end

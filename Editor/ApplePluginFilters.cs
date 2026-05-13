@@ -10,11 +10,13 @@ namespace PluginSet.Apple.Editor
         private static bool FilterLoginPlugins(string s, BuildProcessorContext context)
         {
             var enable = context.BuildTarget == BuildTarget.iOS;
+            var buildParams = context.BuildChannels.Get<BuildAppleParams>();
+            enable = enable && buildParams.Enable && buildParams.EnableLogin;
             if (!enable)
             {
                 Debug.Log("Filter lib file :::::::  " + s);
             }
-                
+
             return !enable;
         }
         
@@ -22,12 +24,13 @@ namespace PluginSet.Apple.Editor
         {
             var enable = context.BuildTarget == BuildTarget.iOS;
             var buildParams = context.BuildChannels.Get<BuildAppleParams>();
-            if (!enable || !buildParams.EnablePurchase)
+            enable = enable && buildParams.Enable && buildParams.EnablePurchase;
+            if (!enable)
             {
                 Debug.Log("Filter lib file :::::::  " + s);
             }
-            
-            return !enable || !buildParams.EnablePurchase;
+
+            return !enable;
         }
         
         static ApplePluginFilters()
