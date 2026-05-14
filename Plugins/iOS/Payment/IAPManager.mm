@@ -424,7 +424,8 @@
 }
 
     // 恢复成功的回调 ✅
-- (void)paymentQueue:(SKPaymentQueue *)queue paymentQueueRestoreCompletedTransactionsFinished {
+
+- (void)paymentQueue:(SKPaymentQueue *)queue paymentQueueRestoreCompletedTransactionsFinished:(id) identifier {
     NSLog(@"restore completed:::: %@", queue.transactions.count);
     [self.delegate handleIAPRestoreTransactionSuccess:queue.transactions.count];
 }

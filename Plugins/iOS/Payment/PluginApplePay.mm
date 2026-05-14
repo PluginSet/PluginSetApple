@@ -109,7 +109,8 @@ static PluginApplePay* instance;
 }
 
 - (void)handleIAPRestoreTransactionSuccess:(int)count { 
-    UnitySendMessage(appleDelegateGameObjectName, kAppleDelegateRestoreTransactionSuccess, [@(count) UTF8String]);
+    NSString *resultStr = [NSString stringWithFormat:@"%ld", (long)count];
+    UnitySendMessage(appleDelegateGameObjectName, kAppleDelegateRestoreTransactionSuccess, [resultStr UTF8String]);
 }
 
 - (void)handleIAPRestoreTransactionFail:(int)errorCode withMsg:(NSString *)message { 
