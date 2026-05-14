@@ -26,6 +26,7 @@ static const char * kAppleDelegateInitPrudctsSuccess = "OnPluginAppleInitProduct
 static const char * kAppleDelegateInitPrudctsFail = "OnPluginAppleInitProductsFail";
 static const char * kAppleDelegateBuyPrudctSuccess = "OnPluginAppleBuyProductSuccess";
 static const char * kAppleDelegateBuyPrudctFail = "OnPluginAppleBuyProductFail";
+static const char * kAppleDelegateRestoreTransactionSuccess = "OnPluginAppleRestoreTransactionSuccess";
 static const char * kAppleDelegateRestoreTransactionFail = "OnPluginAppleRestoreTransactionFail";
 
 static PluginApplePay* instance;
@@ -65,6 +66,10 @@ static PluginApplePay* instance;
     [self.manager finishTransaction:transactionId];
 }
 
+- (void)restoreCompletedTransactions {
+    [self.manager restoreCompletedTransactions];
+}
+
 - (void)handleIAPInitError:(int)errorCode withMsg:(NSString *)message {
     NSDictionary * result = @{
         @"errorCode": @(errorCode),
@@ -74,7 +79,21 @@ static PluginApplePay* instance;
 }
 
 - (void)handleIAPInitSuccess:(NSDictionary *)priceDict {
-    UnitySendMessage(appleDelegateGameObjectName, kAppleDelegateInitPrudctsSuccess, [[PluginUtils dictToJson:priceDict] UTF8String]);
+    NSArray *sortedKeys = [[priceDict allKeys] sortedArrayUsingSelector:@selector(compare:)];
+    NSMutableArray *valueArray = [NSMutableArray arrayWithCapacity:sortedKeys.count];
+    for (id key in sortedKeys) {
+        id value = [priceDict objectForKey:key];
+        if (value) {
+            [valueArray addObject:value];
+        }
+    }
+    NSError *error = nil;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:valueArray options:0 error:&error];
+    NSString *jsonString = jsonData ? [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding] : @"[]";
+    if (!jsonData && error) {
+        NSLog(@"handleIAPInitSuccess JSON error: %@", error);
+    }
+    UnitySendMessage(appleDelegateGameObjectName, kAppleDelegateInitPrudctsSuccess, [jsonString UTF8String]);
 }
 
 - (void)handleIAPPayError:(int)errorCode withMsg:(NSString *)message { 
@@ -87,6 +106,10 @@ static PluginApplePay* instance;
 
 - (void)handleIAPPaySuccess:(NSDictionary *)result {
     UnitySendMessage(appleDelegateGameObjectName, kAppleDelegateBuyPrudctSuccess, [[PluginUtils dictToJson:result] UTF8String]);
+}
+
+- (void)handleIAPRestoreTransactionSuccess:(int)count { 
+    UnitySendMessage(appleDelegateGameObjectName, kAppleDelegateRestoreTransactionSuccess, [@(count) UTF8String]);
 }
 
 - (void)handleIAPRestoreTransactionFail:(int)errorCode withMsg:(NSString *)message { 

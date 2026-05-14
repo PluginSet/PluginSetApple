@@ -1,6 +1,8 @@
 #if UNITY_EDITOR || (UNITY_IOS && ENABLE_APPLE_PURCHASE)
+using System;
 using PluginSet.Core;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using UnityEngine;
 
 namespace PluginSet.Apple
@@ -27,16 +29,30 @@ namespace PluginSet.Apple
             public PayResult[] purchasedProducts;
         }
 
+        [Serializable]
         public class AppleProduct : IPaymentProduct
         {
+            public static AppleProduct FakeProduct(string productId, ProductType type)
+            {
+                return new AppleProduct()
+                {
+                    productId = productId,
+                    currency = "USD",
+                    priceString = "$0.01",
+                    title = "Fake item",
+                    description = "Fake item",
+                    type = type,
+                };
+            }
             
-            public string productId { set; protected get; }
-            public int price { set; protected get; }
-            public string currency { set; protected get; }
-            public string priceString { set; protected get; }
-            public string title { set; protected get; }
-            public string description { set; protected get; }
-            public ProductType type { set; protected get; }
+
+            [SerializeField] private string productId;
+            [SerializeField] private int price;
+            [SerializeField] private string currency;
+            [SerializeField] private string priceString;
+            [SerializeField] private string title;
+            [SerializeField] private string description;
+            public ProductType type;
             
 
             public override bool AvailableToPurchase => true;
@@ -49,11 +65,12 @@ namespace PluginSet.Apple
             public override string Description => description;
         }
         
-        public delegate void OnAppleInitProductsSuccess(string json, Dictionary<string, IPaymentProduct> priceDict);
+        public delegate void OnAppleInitProductsSuccess(string json);
         public delegate void OnAppleInitProductsFail(ErrorResult error);
         public delegate void OnAppleBuyProductSuccess(PayResult result);
         public delegate void OnAppleBuyProductFail(ErrorResult error);
         public delegate void OnAppleBuyProductCancel(ErrorResult error);
+        public delegate void OnAppleRestoreTransactionSuccess(int count);
         public delegate void OnAppleRestoreTransactionFail(ErrorResult error);
 
         public event OnAppleInitProductsSuccess OnInitProductsSuccess;
@@ -61,18 +78,13 @@ namespace PluginSet.Apple
         public event OnAppleBuyProductSuccess OnBuyProductSuccess;
         public event OnAppleBuyProductFail OnBuyProductFail;
         public event OnAppleBuyProductCancel OnBuyProductCancel;
+        public event OnAppleRestoreTransactionSuccess OnRestoreTransactionSuccess;
         public event OnAppleRestoreTransactionFail OnRestoreTransactionFail;
 
         public void OnPluginAppleInitProductsSuccess(string json)
         {
             Logger.Debug($"OnPluginAppleInitProductsSuccess >>>>>>>>>>>>> {json} callback:{OnInitProductsSuccess}");
-            Dictionary<string, AppleProduct> dict = JsonUtility.FromJson<Dictionary<string, AppleProduct>>(json);
-            Dictionary<string, IPaymentProduct> callback = new Dictionary<string, IPaymentProduct>();
-            foreach (var kv in dict)
-            {
-                callback.Add(kv.Key, (IPaymentProduct)kv.Value);
-            }
-            OnInitProductsSuccess?.Invoke(json, callback);
+            OnInitProductsSuccess?.Invoke(json);
         }
 
         public void OnPluginAppleInitProductsFail(string json)
@@ -100,6 +112,12 @@ namespace PluginSet.Apple
             OnBuyProductFail?.Invoke(error);
         }
 
+        public void OnPluginAppleRestoreTransactionSuccess(string json)
+        {
+            var count = int.Parse(json);
+            OnRestoreTransactionSuccess?.Invoke(count);
+        }
+
         public void OnPluginAppleRestoreTransactionFail(string json)
         {
             var error = JsonUtility.FromJson<ErrorResult>(json);
@@ -113,6 +131,8 @@ namespace PluginSet.Apple
             OnBuyProductSuccess = null;
             OnBuyProductFail = null;
             OnBuyProductCancel = null;
+            OnRestoreTransactionSuccess = null;
+            OnRestoreTransactionFail = null;
         }
     }
 }

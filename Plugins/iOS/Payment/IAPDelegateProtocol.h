@@ -14,6 +14,8 @@
 - (void) handleIAPInitSuccess:(NSDictionary*)priceDict;
 - (void) handleIAPPayError:(int)errorCode withMsg:(NSString*)message;
 - (void) handleIAPPaySuccess:(NSDictionary*) result;
+- (void) handleIAPRestoreTransactionSuccess:(int) count;
+- (void) handleIAPRestoreTransactionFail:(int) code withMsg: (NSString *)message;
 
 @optional
 - (void) invokePayResult:(NSString *)payId currency:(NSString *)name price:(int)amount success:(bool)success;

@@ -377,11 +377,6 @@
         NSLog(@"item::%@(%@)[id=%@] price:%@", product.localizedTitle, product.localizedDescription, product.productIdentifier, formattedPrice);
     }
     
-    // 保存到本地
-    NSString * saveKey = [NSString stringWithFormat:@"%@_%@", KEY_APPSTORE_PRODUCT_DICT, self.applicationUserName ? self.applicationUserName : @"null"];
-    [[NSUserDefaults standardUserDefaults] setObject:priceDict forKey:saveKey];
-    [[NSUserDefaults standardUserDefaults] synchronize];
-    
     if (request == self.request) {
         self.request = nil;
     }
@@ -428,6 +423,13 @@
     }
 }
 
+    // 恢复成功的回调 ✅
+- (void)paymentQueue:(SKPaymentQueue *)queue paymentQueueRestoreCompletedTransactionsFinished {
+    NSLog(@"restore completed:::: %@", queue.transactions.count);
+    [self.delegate handleIAPRestoreTransactionSuccess:queue.transactions.count];
+}
+
+    // 恢复失败的回调 ❌
 - (void)paymentQueue:(SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError:(NSError *)error {
     NSLog(@"restore error:::: %@", error);
     [self.delegate handleIAPRestoreTransactionFail:ERROR_CODE_PAY_FAIL withMsg:error.localizedDescription];
