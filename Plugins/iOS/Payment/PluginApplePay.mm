@@ -51,9 +51,9 @@ static PluginApplePay* instance;
     return self;
 }
 
-- (void) initProducts:(NSArray<NSString *> *)prodctIds
+- (void) initProducts:(NSArray<NSString *> *)productConfigs
 {
-    [self.manager initWithProductIds:prodctIds];
+    [self.manager initWithProductConfigs:productConfigs];
 }
 
 - (void) buyProduct:(NSString *)productId withExtra:(NSString *)extra
@@ -133,13 +133,13 @@ extern "C"
     }
 
     /**
-      products 将所有产品ID用#隔开连接成一个字符串传入
+      products 格式：productId:type#productId:type（type 为 ProductType 整型值，与 C# 枚举一致）
      */
     void Plugin_Apple_Pay_Init_With_Products(const char * prodcuts)
     {
         NSString * productsStr = [NSString stringWithUTF8String:prodcuts];
-        NSArray * productIds = [productsStr componentsSeparatedByString:@"#"];
-        [[PluginApplePay getInstance] initProducts:productIds];
+        NSArray * productConfigs = [productsStr componentsSeparatedByString:@"#"];
+        [[PluginApplePay getInstance] initProducts:productConfigs];
     }
     
     /**

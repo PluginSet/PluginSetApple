@@ -91,7 +91,8 @@ namespace PluginSet.Apple
                 _initProductsCallback += callback;
             _initRequestProducts = new Dictionary<string, ProductType>(products);
 #if UNITY_IOS && !UNITY_EDITOR
-            AppleIosHelper.Plugin_Apple_Pay_Init_With_Products(string.Join("#", products.Keys));
+            AppleIosHelper.Plugin_Apple_Pay_Init_With_Products(
+                string.Join("#", products.Select(kv => $"{kv.Key}:{(int)kv.Value}")));
 #else
             var fakeProducts = new Dictionary<string, IPaymentProduct>();
             foreach (var kv in products)

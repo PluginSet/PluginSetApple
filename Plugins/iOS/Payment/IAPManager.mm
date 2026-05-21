@@ -21,6 +21,11 @@
 
 #define ERROR_CODE_PAY_FAIL (1000)
 
+// 与 PluginSet.Core.ProductType 枚举整型值保持一致
+#define IAP_PRODUCT_TYPE_CONSUMABLE      0
+#define IAP_PRODUCT_TYPE_NON_CONSUMABLE  1
+#define IAP_PRODUCT_TYPE_SUBSCRIPTION    2
+
 // 错误码（保持与历史兼容，仅追加新增项）
 // +0  无 IAP 权限
 // +1  初始化未完成
@@ -57,6 +62,8 @@
 @property(nonatomic, strong) NSMutableDictionary<NSString *, SKPaymentTransaction *> * unFinishedTransactions;
 // transactionId -> productId
 @property(nonatomic, strong) NSMutableDictionary<NSString *, NSString *> * unFinishedProducts;
+// productId -> ProductType（整型，见 IAP_PRODUCT_TYPE_*）
+@property(nonatomic, strong) NSMutableDictionary<NSString *, NSNumber *> * productTypes;
 
 @property(nonatomic, assign) BOOL hasInvokePayResult;
 @property(nonatomic, assign) BOOL hasHandleRestoreTransactionFail;
@@ -97,6 +104,7 @@
 #if IAP_NEEDS_RETAIN
     if (_unFinishedProducts)     { [_unFinishedProducts release];     _unFinishedProducts = nil; }
     if (_unFinishedTransactions) { [_unFinishedTransactions release]; _unFinishedTransactions = nil; }
+    if (_productTypes)           { [_productTypes release];           _productTypes = nil; }
     if (_customExtras)           { [_customExtras release];           _customExtras = nil; }
     [super dealloc];
 #endif
@@ -175,7 +183,74 @@
     return self.unFinishedTransactions;
 }
 
+- (NSMutableDictionary *) ensureProductTypes {
+    if (!self.productTypes) {
+        self.productTypes = [NSMutableDictionary new];
+#if IAP_NEEDS_RETAIN
+        [_productTypes retain];
+#endif
+    }
+    return self.productTypes;
+}
+
+- (BOOL) isConsumableProduct:(NSString *)productId {
+    NSNumber * type = self.productTypes[productId];
+    if (!type) return YES;
+    return type.integerValue == IAP_PRODUCT_TYPE_CONSUMABLE;
+}
+
+- (NSDictionary *) buildPayResultForTransactionId:(NSString *)transactionId
+                                        productId:(NSString *)productId
+                                        errorCode:(int *)outErrorCode
+                                         errorMsg:(NSString **)errorMsg
+{
+    NSURL * appStoreReceiptUrl = [[NSBundle mainBundle] appStoreReceiptURL];
+    if (!appStoreReceiptUrl) {
+        if (outErrorCode) *outErrorCode = ERROR_CODE_PAY_FAIL + 5;
+        if (errorMsg) *errorMsg = @"Empty appStore receipt url";
+        return nil;
+    }
+    if (![[NSFileManager defaultManager] fileExistsAtPath:appStoreReceiptUrl.path]) {
+        if (outErrorCode) *outErrorCode = ERROR_CODE_PAY_FAIL + 6;
+        if (errorMsg) *errorMsg = @"Receipt file not found";
+        return nil;
+    }
+    NSData * receiptData = [[NSFileManager defaultManager] contentsAtPath:appStoreReceiptUrl.path];
+    if (receiptData.length == 0) {
+        if (outErrorCode) *outErrorCode = ERROR_CODE_PAY_FAIL + 7;
+        if (errorMsg) *errorMsg = @"Receipt data is nil";
+        return nil;
+    }
+    
+    NSString * customExtra = self.customExtras ? [self.customExtras optString:productId default:@""] : @"";
+    NSString * receiptBase64 = [receiptData base64EncodedStringWithOptions:0] ?: @"";
+    
+    return @{
+        @"transactionId": transactionId,
+        @"productId":     productId,
+        @"extra":         IF_NIL_EMPTY(customExtra),
+        @"receipt":       receiptBase64
+    };
+}
+
 #pragma mark - Init Products
+
+- (void) initWithProductConfigs:(NSArray<NSString *> *)configs {
+    NSMutableArray<NSString *> * productIds = [NSMutableArray array];
+    for (NSString * config in configs) {
+        if (config.length == 0) continue;
+        NSArray<NSString *> * parts = [config componentsSeparatedByString:@":"];
+        NSString * productId = parts.count > 0 ? parts[0] : config;
+        if (productId.length == 0) continue;
+        [productIds addObject:productId];
+        if (parts.count >= 2) {
+            int type = [parts[1] intValue];
+            [self ensureProductTypes];
+            self.productTypes[productId] = @(type);
+        }
+    }
+    [self initWithProductIds:productIds];
+}
 
 - (void) initWithProductIds:(NSArray *)productIds {
     if (![SKPaymentQueue canMakePayments]) {
@@ -269,7 +344,32 @@
     }
     
     if (self.unFinishedProducts && [[self.unFinishedProducts allValues] containsObject:productId]) {
-        [self reportPayError:ERROR_CODE_PAY_FAIL + 3 msg:@"还有未处理的订单信息"];
+        if ([self isConsumableProduct:productId]) {
+            [self reportPayError:ERROR_CODE_PAY_FAIL + 3 msg:@"还有未处理的订单信息"];
+            return;
+        }
+        NSString * existingTransactionId = nil;
+        for (NSString * tid in self.unFinishedProducts) {
+            if ([self.unFinishedProducts[tid] isEqualToString:productId]) {
+                existingTransactionId = tid;
+                break;
+            }
+        }
+        if (existingTransactionId.length == 0) {
+            [self reportPayError:ERROR_CODE_PAY_FAIL + 3 msg:@"还有未处理的订单信息"];
+            return;
+        }
+        int buildErrorCode = ERROR_CODE_PAY_FAIL + 3;
+        NSString * buildError = nil;
+        NSDictionary * result = [self buildPayResultForTransactionId:existingTransactionId
+                                                           productId:productId
+                                                           errorCode:&buildErrorCode
+                                                            errorMsg:&buildError];
+        if (result) {
+            [self.delegate handleIAPPaySuccess:result];
+        } else {
+            [self reportPayError:buildErrorCode msg:buildError ?: @"还有未处理的订单信息"];
+        }
         return;
     }
     
@@ -377,18 +477,14 @@
     }
     
     // 4) Receipt 读取失败一律不要 finish，避免用户付款丢单；下次启动会重试
-    NSURL * appStoreReceiptUrl = [[NSBundle mainBundle] appStoreReceiptURL];
-    if (!appStoreReceiptUrl) {
-        [self reportPayError:ERROR_CODE_PAY_FAIL + 5 msg:@"Empty appStore receipt url"];
-        return;
-    }
-    if (![[NSFileManager defaultManager] fileExistsAtPath:appStoreReceiptUrl.path]) {
-        [self reportPayError:ERROR_CODE_PAY_FAIL + 6 msg:@"Receipt file not found"];
-        return;
-    }
-    NSData * receiptData = [[NSFileManager defaultManager] contentsAtPath:appStoreReceiptUrl.path];
-    if (receiptData.length == 0) {
-        [self reportPayError:ERROR_CODE_PAY_FAIL + 7 msg:@"Receipt data is nil"];
+    int buildErrorCode = 0;
+    NSString * buildError = nil;
+    NSDictionary * result = [self buildPayResultForTransactionId:transactionId
+                                                       productId:productId
+                                                       errorCode:&buildErrorCode
+                                                        errorMsg:&buildError];
+    if (!result) {
+        [self reportPayError:buildErrorCode msg:buildError ?: @"Receipt error"];
         return;
     }
     
@@ -398,15 +494,6 @@
     self.unFinishedTransactions[transactionId] = transaction;
     self.unFinishedProducts[transactionId]     = productId;
     
-    NSString * customExtra = self.customExtras ? [self.customExtras optString:productId default:@""] : @"";
-    NSString * receiptBase64 = [receiptData base64EncodedStringWithOptions:0] ?: @"";
-    
-    NSDictionary * result = @{
-        @"transactionId": transactionId,
-        @"productId":     productId,
-        @"extra":         IF_NIL_EMPTY(customExtra),
-        @"receipt":       receiptBase64
-    };
     [self.delegate handleIAPPaySuccess:result];
 }
 
