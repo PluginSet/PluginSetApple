@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using PluginSet.Apple;
+using PluginSet.Core;
 using PluginSet.Core.Editor;
 using UnityEditor;
 using UnityEngine;
@@ -28,6 +30,16 @@ namespace PluginSet.Apple.Editor
             
             if (buildParams.EnablePurchase)
                 context.Symbols.Add("ENABLE_APPLE_PURCHASE");
+
+            if (buildParams.EnablePush && context.BuildChannels.IncludePushModule)
+            {
+                context.Symbols.Add("ENABLE_APPLE_PUSH");
+
+                var pluginConfig = context.Get<PluginSetConfig>("pluginsConfig");
+                var pushConfig = pluginConfig.AddConfig<PluginApplePushConfig>("Apple");
+                pushConfig.EnablePush = true;
+                pushConfig.AutoClearNotifications = buildParams.AutoClearNotifications;
+            }
         }
 
         [iOSXCodeProjectModify]
@@ -44,6 +56,12 @@ namespace PluginSet.Apple.Editor
                 project.AddFrameworkToProject(project.MainFramework, k_StorekitFramework, false);
                 project.AddFrameworkToProject(project.UnityFramework, k_StorekitFramework, false);
                 project.AddInAppPurchase();
+            }
+
+            if (buildParams.EnablePush && context.BuildChannels.IncludePushModule)
+            {
+                project.TryAddCapability(project.MainFramework, PBXCapabilityType.PushNotifications);
+                project.PlistDocument.AddArrayElement("UIBackgroundModes", "remote-notification");
             }
         }
     }

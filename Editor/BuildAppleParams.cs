@@ -18,5 +18,11 @@ namespace PluginSet.Apple.Editor
         
         [Tooltip("是否启用苹果支付")]
         public bool EnablePurchase;
+
+        [Tooltip("是否启用 iOS 原生 APNs 推送（需在 Apple 开发者后台配置 Push 证书/Key）")]
+        public bool EnablePush;
+
+        [Tooltip("回到前台时自动清除通知中心已送达通知")]
+        public bool AutoClearNotifications = true;
     }
 }

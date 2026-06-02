@@ -17,6 +17,13 @@ namespace PluginSet.Apple
         
         public override string Name => "Apple";
 
+        protected override void Init(PluginSetConfig config)
+        {
+#if ENABLE_PUSH_MODULE && (UNITY_EDITOR || (UNITY_IOS && ENABLE_APPLE_PUSH))
+            InitPush(config);
+#endif
+        }
+
         public int StartOrder => PluginsStartOrder.SdkDefault;
         
         public bool IsRunning { get; private set; }
