@@ -1,4 +1,4 @@
-#if ENABLE_PUSH_MODULE && (UNITY_EDITOR || (UNITY_IOS && ENABLE_APPLE_PUSH))
+#if ENABLE_PUSH_MODULE && (UNITY_IOS && ENABLE_APPLE_PUSH)
 using PluginSet.Core;
 using PluginSet.Core.MiniJSON;
 using UnityEngine;
