@@ -106,7 +106,8 @@ PluginApple* instance;
         ASPasswordCredential * passwordCredential = authorization.credential;
         NSString* user = passwordCredential.user;
         NSString* password = passwordCredential.password;
-        NSLog(@"Apple login success, user=%@, password=%@", user, password);
+        // 安全提示：不要把 password 打进日志（NSLog 会写入设备日志，可能被收集/泄露），仅记录用户标识
+        NSLog(@"Apple login success, user=%@", user);
    
         NSDictionary * dict = @{
             @"type" : @"Password",
